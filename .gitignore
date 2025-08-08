@@ -1,0 +1,24 @@
+# Node modules
+node_modules/
+
+# Environment variables
+.env
+
+# Build output folders (adjust if your build folder is different)
+dist/
+build/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+
+yarn-error.log*
+
+# Optional: system files
+.DS_Store
+Thumbs.db
+
+# Vite cache (if you want)
+.vite/
+
+# Any other sensitive or large files you don't want in git
