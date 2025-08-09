@@ -1,3 +1,8 @@
+// =======================================================================
+// File: main.js
+// Description: The main Electron process, with robust IPC, hotkey
+// handling, and dynamic Vite dev server loading.
+// =======================================================================
 const { app, BrowserWindow, ipcMain, clipboard, globalShortcut, Tray, Menu } = require('electron');
 const path = require('path');
 require('dotenv').config();
@@ -12,7 +17,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
-    show: false, // Start hidden
+    show: true, // Window is now visible on startup for easier debugging
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -20,7 +25,11 @@ function createWindow() {
     },
   });
 
-  mainWindow.loadURL('http://localhost:5176');
+  if (process.env.VITE_DEV_SERVER_URL) {
+    mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
+  } else {
+    mainWindow.loadFile(path.join(__dirname, 'index.html'));
+  }
 
   mainWindow.on('close', (event) => {
     event.preventDefault();
@@ -29,7 +38,7 @@ function createWindow() {
 }
 
 function createTray() {
-  tray = new Tray(path.join(__dirname, 'icon.png')); // add your icon.png in project root
+  tray = new Tray(path.join(__dirname, 'icon.png'));
   const contextMenu = Menu.buildFromTemplate([
     { label: 'Show App', click: () => mainWindow.show() },
     { label: 'Quit', click: () => { app.isQuiting = true; app.quit(); } }
@@ -41,28 +50,42 @@ function createTray() {
 function registerHotkey() {
   globalShortcut.register('CommandOrControl+Shift+G', async () => {
     const selectedText = clipboard.readText().trim();
-    if (selectedText && mainWindow) {
-      // Send loading signal immediately
-      mainWindow.webContents.send('hotkey-trigger', '__loading__');
+    if (mainWindow) {
+      if (selectedText) {
+        mainWindow.webContents.send('hotkey-triggered', selectedText);
 
-      try {
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-        const result = await model.generateContent(selectedText);
-        const explanation = result.response.text();
+        const maxRetries = 5;
+        let delay = 1000;
 
-        mainWindow.webContents.send('hotkey-trigger', explanation);
-      } catch (error) {
-        console.error('Gemini API error:', error);
-        mainWindow.webContents.send('hotkey-trigger', 'An error occurred while contacting Gemini.');
+        for (let i = 0; i < maxRetries; i++) {
+          try {
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+            const result = await model.generateContent(selectedText);
+            const explanation = result.response.text();
+            
+            mainWindow.webContents.send('hotkey-response', explanation);
+            return;
+          } catch (error) {
+            console.error('Gemini API error:', error);
+            if (error.status === 503 && i < maxRetries - 1) {
+              console.log(`Retrying in ${delay / 1000} seconds...`);
+              await new Promise(resolve => setTimeout(resolve, delay));
+              delay *= 2;
+            } else {
+              mainWindow.webContents.send('hotkey-response', 'An error occurred while contacting Gemini.');
+              return;
+            }
+          }
+        }
+      } else {
+        console.log('Clipboard is empty. Hotkey ignored.');
+        mainWindow.webContents.send('hotkey-response', 'Clipboard is empty. Copy some text first!');
       }
     } else {
-      console.log('No text found in clipboard or mainWindow not ready');
+      console.log('Main window is not ready.');
     }
   });
 }
-
-
-
 
 app.whenReady().then(() => {
   createWindow();
@@ -75,16 +98,4 @@ app.whenReady().then(() => {
 
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
-});
-
-// Handle Gemini request
-ipcMain.handle('ask-gpt', async (event, text) => {
-  try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    const result = await model.generateContent(text);
-    return result.response.text();
-  } catch (error) {
-    console.error('Gemini API error:', error);
-    return 'An error occurred while contacting Gemini.';
-  }
 });
