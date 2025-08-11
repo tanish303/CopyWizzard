@@ -1,8 +1,3 @@
-// =======================================================================
-// File: main.js
-// Description: The main Electron process with a complete and secure toast
-// notification system.
-// =======================================================================
 const { app, BrowserWindow, ipcMain, clipboard, globalShortcut, Tray, Menu, screen } = require('electron');
 const path = require('path');
 require('dotenv').config();
@@ -49,20 +44,15 @@ function createTray() {
 }
 
 function createNotificationWindow() {
-  const display = screen.getPrimaryDisplay();
-  const width = 350;
-  const height = 100;
-
   notificationWindow = new BrowserWindow({
-    width: width,
-    height: height,
-    x: display.workAreaSize.width - width - 20,
-    y: display.workAreaSize.height - height - 20,
+    width: 360,
+    height: 100,
     frame: false,
     transparent: true,
     alwaysOnTop: true,
     resizable: false,
-    show: false, // Start hidden
+    show: false,
+    skipTaskbar: true,
     webPreferences: {
       preload: path.join(__dirname, 'notification-preload.js'),
       contextIsolation: true,
@@ -70,13 +60,28 @@ function createNotificationWindow() {
     }
   });
 
-  // Add error handling to catch file loading issues
-  try {
-    notificationWindow.loadFile('notification.html');
-  } catch (err) {
-    console.error('Error loading notification.html:', err);
-    // You might want to display a fallback or exit the app here
-  }
+  notificationWindow.loadFile('notification.html');
+}
+
+function positionAndResizeToast() {
+  if (!notificationWindow) return;
+
+  notificationWindow.webContents.executeJavaScript(`
+    document.querySelector('.toast')?.offsetHeight || 100
+  `).then(height => {
+    const display = screen.getPrimaryDisplay();
+    const { width: screenW, height: screenH } = display.workAreaSize;
+    const margin = 20;
+
+    notificationWindow.setBounds({
+      width: 360,
+      height: height,
+      x: screenW - 360 - margin,
+      y: screenH - height - margin
+    });
+
+    notificationWindow.showInactive();
+  }).catch(err => console.error('Error measuring toast height:', err));
 }
 
 function registerHotkey() {
@@ -87,6 +92,7 @@ function registerHotkey() {
         title: 'CopyWizz',
         body: 'Getting info from Gemini...'
       });
+      positionAndResizeToast();
 
       const maxRetries = 5;
       let delay = 1000;
@@ -96,16 +102,16 @@ function registerHotkey() {
           const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
           const result = await model.generateContent(selectedText);
           const explanation = result.response.text();
-          
+
           notificationWindow.webContents.send('show-notification', {
             title: 'Gemini Response',
             body: explanation
           });
+          positionAndResizeToast();
           return;
         } catch (error) {
           console.error('Gemini API error:', error);
           if (error.status === 503 && i < maxRetries - 1) {
-            console.log(`Retrying in ${delay / 1000} seconds...`);
             await new Promise(resolve => setTimeout(resolve, delay));
             delay *= 2;
           } else {
@@ -113,6 +119,7 @@ function registerHotkey() {
               title: 'Error',
               body: 'An error occurred while contacting Gemini.'
             });
+            positionAndResizeToast();
             return;
           }
         }
@@ -122,34 +129,29 @@ function registerHotkey() {
         title: 'CopyWizz',
         body: 'Clipboard is empty. Copy some text first!'
       });
+      positionAndResizeToast();
     }
   });
 }
 
-// IPC handlers for managing the notification window
 ipcMain.on('show-window', () => {
-  if (notificationWindow) {
-    notificationWindow.show();
-  }
+  positionAndResizeToast();
 });
 
 ipcMain.on('hide-window', () => {
-  if (notificationWindow) {
-    notificationWindow.hide();
-  }
+  if (notificationWindow) notificationWindow.hide();
 });
-
 
 app.whenReady().then(() => {
   createWindow();
   createTray();
   createNotificationWindow();
   registerHotkey();
-  app.setLoginItemSettings({
-    openAtLogin: true
-  });
+  app.setLoginItemSettings({ openAtLogin: true });
 });
 
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
-}); 
+});
+  tanish
+
