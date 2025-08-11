@@ -84,15 +84,19 @@ function positionAndResizeToast() {
   }).catch(err => console.error('Error measuring toast height:', err));
 }
 
+
 function registerHotkey() {
   globalShortcut.register('CommandOrControl+Shift+G', async () => {
     const selectedText = clipboard.readText().trim();
-    if (selectedText) {
+    if (notificationWindow && selectedText) {
+      const defaultPrompt = "You are an AI assistant integrated into a desktop tool named \"CopyWizz\". Your sole purpose is to explain selected text from the user's screen in a concise and clear manner.\n\nInstructions:\n- Don't ask questions or engage in conversation.\n- Provide a direct, factual explanation of the selected text.\n- Keep your response between 0- 200 words. Aim for the shortest, clearest explanation possible without over-explaining.\n- If you are unable to understand or explain the selected text, say \"I couldn't find a simple explanation for this. For a more detailed look, you can continue this conversation by clicking on 'Continue Conversation'.\"\n- If the selected text is a question, answer it directly without asking any follow-up questions.";
+      const fullPrompt = `${defaultPrompt}\n\nSelected Text:\n${selectedText}`;
+      lastFullPrompt = fullPrompt;
+
       notificationWindow.webContents.send('show-notification', {
         title: 'CopyWizz',
-        body: 'Getting info from Gemini...'
+        body: 'Getting info...'
       });
-      positionAndResizeToast();
 
       const maxRetries = 5;
       let delay = 1000;
@@ -100,36 +104,36 @@ function registerHotkey() {
       for (let i = 0; i < maxRetries; i++) {
         try {
           const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-          const result = await model.generateContent(selectedText);
+          const result = await model.generateContent(fullPrompt);
           const explanation = result.response.text();
-
+          
           notificationWindow.webContents.send('show-notification', {
-            title: 'Gemini Response',
+            title: 'CopyWizz Response',
             body: explanation
           });
-          positionAndResizeToast();
           return;
         } catch (error) {
           console.error('Gemini API error:', error);
           if (error.status === 503 && i < maxRetries - 1) {
+            console.log(`Retrying in ${delay / 1000} seconds...`);
             await new Promise(resolve => setTimeout(resolve, delay));
             delay *= 2;
           } else {
             notificationWindow.webContents.send('show-notification', {
               title: 'Error',
-              body: 'An error occurred while contacting Gemini.'
+              body: 'An error occurred while contacting AI.'
             });
-            positionAndResizeToast();
             return;
           }
         }
       }
     } else {
-      notificationWindow.webContents.send('show-notification', {
-        title: 'CopyWizz',
-        body: 'Clipboard is empty. Copy some text first!'
-      });
-      positionAndResizeToast();
+      if (notificationWindow) {
+        notificationWindow.webContents.send('show-notification', {
+          title: 'CopyWizz',
+          body: 'Clipboard is empty. Copy some text first!'
+        });
+      }
     }
   });
 }
@@ -153,5 +157,5 @@ app.whenReady().then(() => {
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
 });
-  tanish
+  
 
