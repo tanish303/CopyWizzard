@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, clipboard, globalShortcut, Tray, Menu, screen } = require('electron');
+const { app, BrowserWindow, ipcMain, clipboard, globalShortcut, Tray, Menu, screen, shell } = require('electron'); // Add 'shell'
 const path = require('path');
 require('dotenv').config();
 const { GoogleGenerativeAI } = require('@google/generative-ai');
@@ -109,7 +109,8 @@ function registerHotkey() {
           
           notificationWindow.webContents.send('show-notification', {
             title: 'CopyWizz Response',
-            body: explanation
+            body: explanation,
+            originalText: selectedText // <-- Pass original text here
           });
           return;
         } catch (error) {
@@ -146,6 +147,13 @@ ipcMain.on('hide-window', () => {
   if (notificationWindow) notificationWindow.hide();
 });
 
+// --- NEW ---
+// Safely open links in the user's default browser
+ipcMain.on('open-url', (event, url) => {
+    shell.openExternal(url);
+});
+// --- END NEW ---
+
 app.whenReady().then(() => {
   createWindow();
   createTray();
@@ -157,5 +165,3 @@ app.whenReady().then(() => {
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
 });
-  
-

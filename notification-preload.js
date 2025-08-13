@@ -8,5 +8,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     onShowNotification: (callback) => ipcRenderer.on('show-notification', (_event, value) => callback(value)),
     showWindow: () => ipcRenderer.send('show-window'),
     hideWindow: () => ipcRenderer.send('hide-window'),
-    resizeWindow: (width, height) => ipcRenderer.send('resize-window', { width, height })
+    resizeWindow: (width, height) => ipcRenderer.send('resize-window', { width, height }),
+    openUrlInBrowser: (url) => ipcRenderer.send('open-url', url) // <-- Add this line
 });

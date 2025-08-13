@@ -60,6 +60,32 @@
       color: #e2e8f0;
       word-wrap: break-word;
     }
+    
+    /* --- NEW STYLES --- */
+    .toast-actions {
+        margin-top: 12px;
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+    }
+
+    .action-button {
+        background-color: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: #e2e8f0;
+        font-size: 12px;
+        font-weight: 500;
+        padding: 5px 10px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background-color 0.2s ease, border-color 0.2s ease;
+    }
+
+    .action-button:hover {
+        background-color: rgba(255, 255, 255, 0.15);
+        border-color: rgba(255, 255, 255, 0.2);
+    }
+    /* --- END NEW STYLES --- */
 
     @keyframes fadeIn {
       from {
@@ -78,6 +104,10 @@
   <script>
     window.electronAPI.onShowNotification((data) => {
       const root = document.getElementById('root');
+      
+      // Determine if the Continue Conversation button should be shown
+      const showContinueButton = data.originalText && data.body !== 'Getting info...';
+
       root.innerHTML = `
         <div class="toast">
           <div class="toast-header">
@@ -92,15 +122,33 @@
             </button>
           </div>
           <div class="body">${data.body}</div>
+          ${showContinueButton ? `
+          <div class="toast-actions">
+            <button class="action-button" id="continueButton">Continue Conversation</button>
+          </div>
+          ` : ''}
         </div>
       `;
 
       document.getElementById('closeButton').addEventListener('click', () => {
         window.electronAPI.hideWindow();
       });
+      
+      // Add event listener for the new button if it exists
+      const continueButton = document.getElementById('continueButton');
+      if (continueButton) {
+        continueButton.addEventListener('click', () => {
+          const promptContext = `My original selected text was:\n\n"""\n${data.originalText}\n"""\n\nYou responded with:\n\n"""\n${data.body}\n"""\n\nLet's continue this conversation.`;
+          const encodedPrompt = encodeURIComponent(promptContext);
+          const geminiUrl = `https://gemini.google.com/app?prompt=\${encodedPrompt}`;
+          window.electronAPI.openUrlInBrowser(geminiUrl);
+        });
+      }
 
       window.electronAPI.showWindow();
     });
   </script>
 </body>
 </html>
+ 
+tanish
