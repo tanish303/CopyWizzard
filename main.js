@@ -58,9 +58,10 @@ function createNotificationWindow() {
       contextIsolation: true,
       nodeIntegration: false,
     }
-  });
+  }); 
 
   notificationWindow.loadFile('notification.html');
+  
 }
 
 function positionAndResizeToast() {
@@ -146,13 +147,20 @@ ipcMain.on('show-window', () => {
 ipcMain.on('hide-window', () => {
   if (notificationWindow) notificationWindow.hide();
 });
+// Add this new listener in main.js, alongside your other ipcMain listeners
 
+ipcMain.on('write-clipboard', (event, text) => {
+  if (text) {
+    clipboard.writeText(text);
+  }
+});
 // --- NEW ---
 // Safely open links in the user's default browser
 ipcMain.on('open-url', (event, url) => {
     shell.openExternal(url);
 });
 // --- END NEW ---
+
 
 app.whenReady().then(() => {
   createWindow();

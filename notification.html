@@ -102,53 +102,61 @@
 <body>
   <div id="root"></div>
   <script>
-    window.electronAPI.onShowNotification((data) => {
-      const root = document.getElementById('root');
-      
-      // Determine if the Continue Conversation button should be shown
-      const showContinueButton = data.originalText && data.body !== 'Getting info...';
+  window.electronAPI.onShowNotification((data) => {
+    const root = document.getElementById('root');
+    
+    const showContinueButton = data.originalText && data.body !== 'Getting info...';
 
-      root.innerHTML = `
-        <div class="toast">
-          <div class="toast-header">
-            <div class="title">${data.title}</div>
-            <button class="close-button" id="closeButton" aria-label="Close">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" 
-                   stroke="currentColor" stroke-width="2" stroke-linecap="round" 
-                   stroke-linejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-          </div>
-          <div class="body">${data.body}</div>
-          ${showContinueButton ? `
-          <div class="toast-actions">
-            <button class="action-button" id="continueButton">Continue Conversation</button>
-          </div>
-          ` : ''}
+    root.innerHTML = `
+      <div class="toast">
+        <div class="toast-header">
+          <div class="title">${data.title}</div>
+          <button class="close-button" id="closeButton" aria-label="Close">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" 
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" 
+                 stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
         </div>
-      `;
+        <div class="body">${data.body}</div>
+        ${showContinueButton ? `
+        <div class="toast-actions">
+          <button class="action-button" id="continueButton">Copy & Open Gemini</button>
+        </div>
+        ` : ''}
+      </div>
+    `;
 
-      document.getElementById('closeButton').addEventListener('click', () => {
-        window.electronAPI.hideWindow();
-      });
-      
-      // Add event listener for the new button if it exists
-      const continueButton = document.getElementById('continueButton');
-      if (continueButton) {
-        continueButton.addEventListener('click', () => {
-          const promptContext = `My original selected text was:\n\n"""\n${data.originalText}\n"""\n\nYou responded with:\n\n"""\n${data.body}\n"""\n\nLet's continue this conversation.`;
-          const encodedPrompt = encodeURIComponent(promptContext);
-          const geminiUrl = `https://gemini.google.com/app?prompt=\${encodedPrompt}`;
-          window.electronAPI.openUrlInBrowser(geminiUrl);
-        });
-      }
-
-      window.electronAPI.showWindow();
+    document.getElementById('closeButton').addEventListener('click', () => {
+      window.electronAPI.hideWindow();
     });
-  </script>
+    tanish
+    
+    const continueButton = document.getElementById('continueButton');
+    if (continueButton) {
+      // --- NEW LOGIC FOR THE BUTTON ---
+      continueButton.addEventListener('click', () => {
+// ... inside the continueButton event listener
+const promptContext = `I asked you about "${data.originalText}" and you responded with "${data.body}". Now I want to continue this conversation.`;
+// ...        
+        // 1. Write the full context to the clipboard
+        window.electronAPI.writeClipboard(promptContext);
+        
+        // 2. Open the base Gemini URL in the browser
+        window.electronAPI.openUrlInBrowser('https://gemini.google.com/app');
+        
+        // 3. (Optional) Give the user feedback and close the toast
+        continueButton.innerText = 'Prompt Copied!';
+        setTimeout(() => {
+          window.electronAPI.hideWindow();
+        }, 1500); // Hide the notification after 1.5 seconds
+      });
+    }
+
+    window.electronAPI.showWindow();
+  });
+</script>
 </body>
 </html>
- 
-tanish
