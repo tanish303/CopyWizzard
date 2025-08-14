@@ -6,14 +6,14 @@ function SettingsPage({ styles }) {
   const [customPrompt, setCustomPrompt] = useState('');
   const [appVersion, setAppVersion] = useState('');
   
-  const [saveMessage, setSavedMessage] = useState('');
+  // --- NEW State for verification ---
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [message, setMessage] = useState({ text: '', type: '' }); // type can be 'success' or 'error'
 
   useEffect(() => {
     const loadSettings = async () => {
-      console.log('[SettingsPage] Fetching settings...');
       if (window.electronAPI) {
         const settings = await window.electronAPI.getSettings();
-        console.log('[SettingsPage] Received settings:', settings);
         setApiKey(settings.apiKey || '');
         setLaunchAtLogin(settings.launchAtLogin);
         setCustomPrompt(settings.customPrompt || '');
@@ -24,16 +24,27 @@ function SettingsPage({ styles }) {
   }, []);
 
   const handleSave = async () => {
-    console.log('[SettingsPage] Save button clicked.');
     if (window.electronAPI) {
-      // Save all settings at once
-      await window.electronAPI.setApiKey(apiKey);
-      await window.electronAPI.setLaunchAtLogin(launchAtLogin);
-      await window.electronAPI.setCustomPrompt(customPrompt);
-      
-      console.log('[SettingsPage] All settings sent to main process.');
-      setSavedMessage('Settings saved successfully!');
-      setTimeout(() => setSavedMessage(''), 3000);
+      // 1. Start verification
+      setIsVerifying(true);
+      setMessage({ text: 'Verifying API Key...', type: 'info' });
+
+      const verificationResult = await window.electronAPI.verifyApiKey(apiKey);
+
+      setIsVerifying(false);
+
+      // 2. Check result and save if valid
+      if (verificationResult.success) {
+        await window.electronAPI.setApiKey(apiKey);
+        await window.electronAPI.setLaunchAtLogin(launchAtLogin);
+        await window.electronAPI.setCustomPrompt(customPrompt);
+        
+        setMessage({ text: 'Settings saved successfully!', type: 'success' });
+      } else {
+        setMessage({ text: `Error: ${verificationResult.error}`, type: 'error' });
+      }
+
+      setTimeout(() => setMessage({ text: '', type: '' }), 4000);
     }
   };
 
@@ -42,7 +53,6 @@ function SettingsPage({ styles }) {
       <h2 style={styles.pageTitle}>Settings</h2>
       <div style={styles.settingsContainer}>
         
-        {/* API Key Management */}
         <div style={styles.formGroup}>
           <label htmlFor="apiKey" style={styles.label}>Gemini API Key</label>
           <input
@@ -55,7 +65,6 @@ function SettingsPage({ styles }) {
           />
         </div>
 
-        {/* Prompt Customization */}
         <div style={styles.formGroup}>
           <label htmlFor="customPrompt" style={styles.label}>Custom AI Prompt</label>
           <textarea
@@ -66,7 +75,6 @@ function SettingsPage({ styles }) {
           />
         </div>
 
-        {/* Application Behavior */}
         <div style={styles.formGroup}>
            <label style={{...styles.label, display: 'flex', alignItems: 'center', cursor: 'pointer'}}>
             <input
@@ -79,13 +87,19 @@ function SettingsPage({ styles }) {
           </label>
         </div>
 
-        <button onClick={handleSave} style={styles.saveButton}>
-          Save All Settings
+        <button onClick={handleSave} style={styles.saveButton} disabled={isVerifying}>
+          {isVerifying ? 'Verifying...' : 'Save All Settings'}
         </button>
-        {saveMessage && <p style={styles.saveMessage}>{saveMessage}</p>}
+        {message.text && (
+          <p style={{ 
+            ...styles.saveMessage, 
+            color: message.type === 'error' ? 'red' : 'green' 
+          }}>
+            {message.text}
+          </p>
+        )}
 
-        {/* About Section */}
-        <div style={styles.aboutSection}>
+        <div style={{...styles.aboutSection, marginTop: '3rem'}}>
           <p>CopyWizz Version: {appVersion}</p>
         </div>
 

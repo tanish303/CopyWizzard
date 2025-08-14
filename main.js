@@ -217,6 +217,25 @@ ipcMain.handle('get-settings', () => {
   };
 });
 
+// --- NEW: IPC Handler to verify an API key ---
+ipcMain.handle('verify-api-key', async (event, apiKey) => {
+  console.log('[IPC] verify-api-key called');
+  if (!apiKey) {
+    return { success: false, error: 'API key cannot be empty.' };
+  }
+  try {
+    const tempGenAI = new GoogleGenerativeAI(apiKey);
+    const model = tempGenAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // Make a simple, low-cost call to verify the key
+    await model.countTokens("test");
+    console.log('[IPC] API key verification successful.');
+    return { success: true };
+  } catch (error) {
+    console.error('[IPC] API key verification failed:', error.message);
+    return { success: false, error: 'Invalid API Key or network issue.' };
+  }
+});
+
 ipcMain.handle('set-api-key', (event, apiKey) => {
   console.log('[IPC] set-api-key called');
   if (!store) return;
@@ -251,9 +270,7 @@ ipcMain.on('hide-window', () => { if (notificationWindow) notificationWindow.hid
 ipcMain.on('write-clipboard', (event, text) => { if (text) { clipboard.writeText(text); } });
 ipcMain.on('open-url', (event, url) => { shell.openExternal(url); });
 
-// --- MODIFIED: ASYNC STARTUP SEQUENCE ---
 async function initializeApp() {
-  // Dynamically import electron-store
   const { default: Store } = await import('electron-store');
   store = new Store();
   console.log('[Startup] Electron-store initialized.');
@@ -274,4 +291,3 @@ app.whenReady().then(initializeApp);
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
 });
-   

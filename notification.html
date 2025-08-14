@@ -23,8 +23,6 @@
       display: flex;
       flex-direction: column;
       gap: 8px;
-      opacity: 0;
-      animation: fadeIn 0.3s ease-in-out forwards;
     }
 
     .toast-header {
@@ -59,9 +57,10 @@
       line-height: 1.5;
       color: #e2e8f0;
       word-wrap: break-word;
+      /* --- NEW: Ensure multi-line error messages are formatted correctly --- */
+      white-space: pre-wrap; 
     }
     
-    /* --- NEW STYLES --- */
     .toast-actions {
         margin-top: 12px;
         display: flex;
@@ -85,78 +84,52 @@
         background-color: rgba(255, 255, 255, 0.15);
         border-color: rgba(255, 255, 255, 0.2);
     }
-    /* --- END NEW STYLES --- */
-
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(10px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
   </style>
 </head>
 <body>
   <div id="root"></div>
   <script>
-  window.electronAPI.onShowNotification((data) => {
-    const root = document.getElementById('root');
-    
-    const showContinueButton = data.originalText && data.body !== 'Getting info...';
+    window.electronAPI.onShowNotification((data) => {
+      const root = document.getElementById('root');
+      
+      const showContinueButton = data.originalText && data.body !== 'Getting info...';
 
-    root.innerHTML = `
-      <div class="toast">
-        <div class="toast-header">
-          <div class="title">${data.title}</div>
-          <button class="close-button" id="closeButton" aria-label="Close">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" 
-                 stroke="currentColor" stroke-width="2" stroke-linecap="round" 
-                 stroke-linejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
+      root.innerHTML = `
+        <div class="toast">
+          <div class="toast-header">
+            <div class="title">${data.title}</div>
+            <button class="close-button" id="closeButton" aria-label="Close">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" 
+                   stroke="currentColor" stroke-width="2" stroke-linecap="round" 
+                   stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+          <div class="body">${data.body}</div>
+          ${showContinueButton ? `
+          <div class="toast-actions">
+            <button class="action-button" id="continueButton">Continue Conversation</button>
+          </div>
+          ` : ''}
         </div>
-        <div class="body">${data.body}</div>
-        ${showContinueButton ? `
-        <div class="toast-actions">
-          <button class="action-button" id="continueButton">Copy & Open Gemini</button>
-        </div>
-        ` : ''}
-      </div>
-    `;
+      `;
 
-    document.getElementById('closeButton').addEventListener('click', () => {
-      window.electronAPI.hideWindow();
-    });
-    
-    
-    const continueButton = document.getElementById('continueButton');
-    if (continueButton) {
-      // --- NEW LOGIC FOR THE BUTTON ---
-      continueButton.addEventListener('click', () => {
-// ... inside the continueButton event listener
-const promptContext = `I asked you about "${data.originalText}" and you responded with "${data.body}". Now I want to continue this conversation.`;
-// ...        
-        // 1. Write the full context to the clipboard
-        window.electronAPI.writeClipboard(promptContext);
-        
-        // 2. Open the base Gemini URL in the browser
-        window.electronAPI.openUrlInBrowser('https://gemini.google.com/app');
-        
-        // 3. (Optional) Give the user feedback and close the toast
-        continueButton.innerText = 'Prompt Copied!';
-        setTimeout(() => {
-          window.electronAPI.hideWindow();
-        }, 1500); // Hide the notification after 1.5 seconds
+      document.getElementById('closeButton').addEventListener('click', () => {
+        window.electronAPI.hideWindow();
       });
-    }
-
-    window.electronAPI.showWindow();
-  });
-</script>
+      
+      const continueButton = document.getElementById('continueButton');
+      if (continueButton) {
+        continueButton.addEventListener('click', () => {
+          const promptContext = `I asked you about "${data.originalText}" and you responded with "${data.body}". Now I want to continue this conversation.`;
+          window.electronAPI.writeClipboard(promptContext);
+          window.electronAPI.openUrlInBrowser('https://gemini.google.com/app');
+        });
+      }
+    });
+  </script>
 </body>
 </html>
+ 
