@@ -1,19 +1,21 @@
-// =======================================================================
-// File: preload.js
-// Description: Secure bridge between the Electron main process and
-// the React renderer process.
-// =======================================================================
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  // --- NEW HISTORY FUNCTIONS ---
-  // These use invoke because they expect a value to be returned from main.js
+  // Settings
+  getSettings: () => ipcRenderer.invoke('get-settings'),
+  setApiKey: (apiKey) => ipcRenderer.invoke('set-api-key', apiKey),
+  setLaunchAtLogin: (value) => ipcRenderer.invoke('set-launch-at-login', value),
+  setCustomPrompt: (prompt) => ipcRenderer.invoke('set-custom-prompt', prompt),
+
+  // History
   getHistory: () => ipcRenderer.invoke('get-history'),
   toggleFavorite: (itemId) => ipcRenderer.invoke('toggle-favorite', itemId),
 
-  // --- OLD FUNCTIONS (no changes needed) ---
-  readClipboard: () => ipcRenderer.invoke('read-clipboard'),
-  askGPT: (text) => ipcRenderer.invoke('ask-gpt', text),
-  onHotkeyTriggered: (callback) => ipcRenderer.on('hotkey-triggered', (_event, text) => callback(text)),
-  onHotkeyResponse: (callback) => ipcRenderer.on('hotkey-response', (_event, text) => callback(text))
+  // Other
+  onHotkeyResponse: (callback) => {
+    const listener = (_event, text) => callback(text);
+    ipcRenderer.on('hotkey-response', listener);
+    // Return an unsubscribe function
+    return () => ipcRenderer.removeListener('hotkey-response', listener);
+  }
 });
