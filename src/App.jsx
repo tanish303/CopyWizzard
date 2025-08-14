@@ -1,94 +1,180 @@
 // =======================================================================
-// File: App.jsx
-// Description: The React renderer component for the user interface.
-// It handles listening for IPC events and managing the app's state.
+// FILE: src/App.jsx (Main Controller Component)
 // =======================================================================
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import Navigation from './components/Navigation';
+import HomePage from './components/HomePage';
+import HowToUsePage from './components/HowToUsePage';
+import HistoryPage from './components/HistoryPage';
+import SettingsPage from './components/SettingsPage';
+
+// --- MOVED STYLES OBJECT TO THE TOP ---
+// Global styles are now defined before the component that uses them.
+const styles = {
+  container: {
+    padding: '0 2rem 2rem 2rem',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    color: '#333',
+    height: '100vh',
+    display: 'flex',
+    flexDirection: 'column'
+  },
+  mainContent: {
+    flexGrow: 1,
+    overflowY: 'auto'
+  },
+  nav: {
+    display: 'flex',
+    gap: '1rem',
+    borderBottom: '1px solid #eee',
+    padding: '1rem 0',
+    flexShrink: 0,
+  },
+  navButton: {
+    background: 'none',
+    border: 'none',
+    padding: '8px 16px',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '1rem',
+    color: '#555'
+  },
+  navButtonActive: {
+    background: '#007bff',
+    color: 'white',
+    border: 'none',
+    padding: '8px 16px',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '1rem'
+  },
+  pageContainer: {
+    textAlign: 'center',
+    paddingTop: '4rem'
+  },
+  appName: {
+    fontSize: '3rem',
+    fontWeight: 'bold',
+    color: '#007bff'
+  },
+  punchline: {
+    fontSize: '1.2rem',
+    color: '#666'
+  },
+  pageTitle: {
+    textAlign: 'left',
+    borderBottom: '1px solid #eee',
+    paddingBottom: '0.5rem',
+    marginBottom: '2rem'
+  },
+  instructions: {
+    textAlign: 'left',
+    maxWidth: '600px',
+    margin: '0 auto',
+    lineHeight: '1.6'
+  },
+  hotkey: {
+    background: '#eee',
+    padding: '2px 6px',
+    borderRadius: '4px',
+    fontFamily: 'monospace'
+  },
+  historyList: {
+    listStyle: 'none',
+    padding: 0,
+  },
+  historyItem: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    borderBottom: '1px solid #eee',
+    padding: '1rem 0'
+  },
+  historyContent: { 
+    marginRight: '1rem',
+    flex: 1
+  },
+  favoriteButton: {
+    background: 'none',
+    border: 'none',
+    fontSize: '1.5rem',
+    cursor: 'pointer',
+    padding: '0.5rem',
+    color: '#ffc107'
+  }
+};
+
 
 function App() {
-  const [response, setResponse] = useState('');
-  const [hotkeyText, setHotkeyText] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [notification, setNotification] = useState({ visible: false, text: '' });
+  const [view, setView] = useState('home'); // 'home', 'how-to-use', 'history', 'settings'
+  const [history, setHistory] = useState([]);
   const [isElectron, setIsElectron] = useState(false);
 
-  useEffect(() => {
-    // Check if the electronAPI is available before trying to use it.
+  const fetchHistory = useCallback(async () => {
     if (window.electronAPI) {
-      setIsElectron(true);
-
-      // Listen for the hotkey trigger (initial state)
-      window.electronAPI.onHotkeyTriggered((text) => {
-        setHotkeyText(text);
-        setLoading(true);
-        setResponse('');
-        setNotification({ visible: true, text: 'Getting info from Gemini...' });
-      });
-
-      // Listen for the final hotkey response
-      window.electronAPI.onHotkeyResponse((gptResponse) => {
-        setResponse(gptResponse);
-        setLoading(false);
-        setNotification({ visible: true, text: gptResponse });
-
-        setTimeout(() => {
-          setNotification({ visible: false, text: '' });
-        }, 5000);
-      });
+      const historyData = await window.electronAPI.getHistory();
+      setHistory(historyData);
     }
   }, []);
 
+  const handleToggleFavorite = async (itemId) => {
+    if (window.electronAPI) {
+      await window.electronAPI.toggleFavorite(itemId);
+      fetchHistory();
+    }
+  };
+  
+  useEffect(() => {
+    if (window.electronAPI) {
+      setIsElectron(true);
+      if (view === 'history') {
+        fetchHistory();
+      }
+      
+      const handleResponse = () => {
+        if (view === 'history') {
+          fetchHistory();
+        }
+      };
+
+      window.electronAPI.onHotkeyResponse(handleResponse);
+    }
+  }, [fetchHistory, view]);
+
   if (!isElectron) {
-    // Show a fallback message if the app is not running in Electron
     return (
-      <div style={{ padding: '2rem', fontFamily: 'sans-serif', textAlign: 'center' }}>
+      <div style={styles.container}>
         <p style={{ color: '#ff6347' }}>This application must be run inside Electron.</p>
-        <p>Please use `npm run start` to launch the desktop application.</p>
       </div>
     );
   }
 
+  const renderView = () => {
+    switch(view) {
+      case 'home':
+        return <HomePage styles={styles} />;
+      case 'how-to-use':
+        return <HowToUsePage styles={styles} />;
+      case 'history':
+        return <HistoryPage styles={styles} history={history} onToggleFavorite={handleToggleFavorite} />;
+      case 'settings':
+        return <SettingsPage styles={styles} />;
+      default:
+        return <HomePage styles={styles} />;
+    }
+  }
+  
   return (
-    <div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
-      {loading ? (
-        <p>Getting info from Gemini...</p>
-      ) : response ? (
-        <pre style={{ marginTop: '2rem', whiteSpace: 'pre-wrap' }}>{response}</pre>
-      ) : (
-        // Add this welcome message when no hotkey has been pressed yet
-        <div style={{ textAlign: 'center', marginTop: '2rem', color: '#666' }}>
-          <p>Copy some text and press <strong>Ctrl+Shift+G</strong> to get started!</p>
-        </div>
-      )}
-
-      {hotkeyText && (
-        <div style={{ marginTop: '1rem', padding: '1rem', background: '#eee', borderRadius: '8px' }}>
-          <strong>Copied Text (Hotkey):</strong> {hotkeyText}
-        </div>
-      )}
-
-      {notification.visible && (
-        <div style={{
-          position: 'fixed',
-          bottom: '2rem',
-          right: '2rem',
-          maxWidth: '300px',
-          padding: '1rem',
-          background: '#4CAF50',
-          color: 'white',
-          borderRadius: '8px',
-          boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
-          zIndex: 1000,
-          whiteSpace: 'pre-wrap',
-          fontSize: '14px',
-          transition: 'opacity 0.5s ease-in-out',
-          opacity: 1
-        }}>
-          {notification.text}
-        </div>
-      )}
+    <div style={styles.container}>
+      <Navigation view={view} setView={setView} onHistoryClick={() => { setView('history'); fetchHistory(); }} styles={styles} />
+      <main style={styles.mainContent}>
+        {renderView()}
+      </main>
     </div>
   );
 }
 
+
 export default App;
+
+
