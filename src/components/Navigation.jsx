@@ -21,7 +21,7 @@ function Navigation({ view, setView, onHistoryClick }) {
   }
 
   return (
-    <nav className="h-full flex flex-col">
+    <nav className="h-full flex flex-col overflow-hidden">
       <div className="p-6 border-b border-slate-200 dark:border-slate-700">
         <div className="flex items-center gap-3">
           <div
@@ -40,7 +40,7 @@ function Navigation({ view, setView, onHistoryClick }) {
         </div>
       </div>
 
-      <div className="flex-1 p-4">
+      <div className="flex-1 overflow-y-auto p-4">
         <div className="space-y-2">
           {navItems.map((item, index) => (
             <button

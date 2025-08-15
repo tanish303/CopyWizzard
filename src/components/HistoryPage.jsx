@@ -1,8 +1,12 @@
 "use client"
+import { useState } from "react"
 import { useTheme } from "./ThemeProvider"
 
 function HistoryPage({ history, onToggleFavorite }) {
   const { theme } = useTheme()
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false)
+
+  const filteredHistory = showFavoritesOnly ? history.filter((item) => item.favorited) : history
 
   return (
     <div className="animate-slideUp">
@@ -11,27 +15,45 @@ function HistoryPage({ history, onToggleFavorite }) {
           theme === "dark" ? "bg-gray-800/80 border border-gray-700" : "bg-white/80 border border-cyan-100"
         }`}
       >
-        <h2
-          className={`text-3xl font-bold mb-8 flex items-center gap-3 ${
-            theme === "dark" ? "text-white" : "text-gray-800"
-          }`}
-        >
-          <span className="text-4xl">📚</span>
-          Query History
-        </h2>
+        <div className="flex justify-between items-center mb-8">
+          <h2
+            className={`text-3xl font-bold flex items-center gap-3 ${
+              theme === "dark" ? "text-white" : "text-gray-800"
+            }`}
+          >
+            <span className="text-4xl">📚</span>
+            Query History
+          </h2>
 
-        {history.length === 0 ? (
+          <button
+            onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+            className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105 flex items-center gap-2 ${
+              showFavoritesOnly
+                ? "bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-lg"
+                : theme === "dark"
+                  ? "bg-gray-700 text-gray-300 hover:bg-gray-600 border border-gray-600"
+                  : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
+            }`}
+          >
+            <span className="text-xl">{showFavoritesOnly ? "★" : "☆"}</span>
+            {showFavoritesOnly ? "Show All" : "Favorites Only"}
+          </button>
+        </div>
+
+        {filteredHistory.length === 0 ? (
           <div className="text-center py-16">
             <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-r from-teal-500 to-cyan-500 flex items-center justify-center opacity-50">
-              <span className="text-4xl">📝</span>
+              <span className="text-4xl">{showFavoritesOnly ? "⭐" : "📝"}</span>
             </div>
             <p className={`text-lg ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
-              No history yet. Use the hotkey to ask a question!
+              {showFavoritesOnly
+                ? "No favorites yet. Star some queries to see them here!"
+                : "No history yet. Use the hotkey to ask a question!"}
             </p>
           </div>
         ) : (
           <div className="space-y-6">
-            {history.map((item, index) => (
+            {filteredHistory.map((item, index) => (
               <div
                 key={item.id}
                 className={`p-6 rounded-xl border transition-all duration-300 hover:scale-[1.02] animate-slideInLeft ${
@@ -70,7 +92,7 @@ function HistoryPage({ history, onToggleFavorite }) {
 
                   <button
                     onClick={() => onToggleFavorite(item.id)}
-                    className={`p-3 rounded-full transition-all duration-300 hover:scale-110 ${
+                    className={`p-3 rounded-full transition-all duration-300 hover:scale-110 flex items-center gap-2 ${
                       item.favorited
                         ? "text-yellow-500 hover:text-yellow-600"
                         : theme === "dark"

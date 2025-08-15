@@ -17,14 +17,14 @@ function Layout({ children, view, setView, onHistoryClick, toast, onToastClose }
     >
       <div className="flex min-h-screen">
         <div
-          className={`w-64 flex-shrink-0 ${
+          className={`w-64 flex-shrink-0 fixed left-0 top-0 h-screen ${
             theme === "dark" ? "bg-slate-800/95 border-r border-slate-700" : "bg-white/95 border-r border-slate-200"
-          } backdrop-blur-sm shadow-xl`}
+          } backdrop-blur-sm shadow-xl z-10`}
         >
           <Navigation view={view} setView={setView} onHistoryClick={onHistoryClick} />
         </div>
 
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 overflow-auto ml-64">
           <div className="p-8">
             <div className="animate-fadeIn max-w-5xl mx-auto">{children}</div>
           </div>
