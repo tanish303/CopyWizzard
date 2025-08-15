@@ -21,30 +21,59 @@ function Navigation({ view, setView, onHistoryClick }) {
   }
 
   return (
-    <nav
-      className={`rounded-2xl p-2 shadow-lg backdrop-blur-sm transition-all duration-300 ${
-        theme === "dark" ? "bg-gray-800/80 border border-gray-700" : "bg-white/80 border border-cyan-100"
-      }`}
-    >
-      <div className="flex gap-2 overflow-x-auto">
-        {navItems.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => handleClick(item.id)}
-            className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium transition-all duration-300 whitespace-nowrap transform hover:scale-105 ${
-              view === item.id
-                ? theme === "dark"
-                  ? "bg-gradient-to-r from-teal-600 to-cyan-600 text-white shadow-lg"
-                  : "bg-gradient-to-r from-teal-500 to-cyan-500 text-white shadow-lg"
-                : theme === "dark"
-                  ? "text-gray-300 hover:bg-gray-700 hover:text-white"
-                  : "text-gray-600 hover:bg-cyan-50 hover:text-teal-700"
-            }`}
+    <nav className="h-full flex flex-col">
+      <div className="p-6 border-b border-slate-200 dark:border-slate-700">
+        <div className="flex items-center gap-3">
+          <div
+            className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg ${
+              theme === "dark"
+                ? "bg-gradient-to-br from-blue-600 to-purple-600 text-white"
+                : "bg-gradient-to-br from-blue-500 to-purple-500 text-white"
+            } shadow-lg`}
           >
-            <span className="text-lg">{item.icon}</span>
-            <span className="hidden sm:inline">{item.label}</span>
-          </button>
-        ))}
+            CW
+          </div>
+          <div>
+            <h1 className={`font-bold text-lg ${theme === "dark" ? "text-white" : "text-slate-800"}`}>CopyWizz</h1>
+            <p className={`text-xs ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>AI Writing Assistant</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 p-4">
+        <div className="space-y-2">
+          {navItems.map((item, index) => (
+            <button
+              key={item.id}
+              onClick={() => handleClick(item.id)}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 text-left group relative overflow-hidden ${
+                view === item.id
+                  ? theme === "dark"
+                    ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg transform scale-[1.02]"
+                    : "bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg transform scale-[1.02]"
+                  : theme === "dark"
+                    ? "text-slate-300 hover:bg-slate-700/50 hover:text-white"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-800"
+              }`}
+              style={{
+                animationDelay: `${index * 100}ms`,
+                animation: "slideInLeft 0.5s ease-out forwards",
+              }}
+            >
+              <span className="text-lg">{item.icon}</span>
+              <span className="font-semibold">{item.label}</span>
+
+              {view === item.id && <div className="absolute right-2 w-2 h-2 bg-white rounded-full animate-pulse" />}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className={`p-4 border-t ${theme === "dark" ? "border-slate-700" : "border-slate-200"}`}>
+        <div className={`text-xs text-center ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>
+          <p>© 2024 CopyWizz</p>
+          <p>Professional Edition</p>
+        </div>
       </div>
     </nav>
   )

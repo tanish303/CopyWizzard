@@ -1,14 +1,13 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import Navigation from "./components/Navigation"
 import HomePage from "./components/HomePage"
 import HowToUsePage from "./components/HowToUsePage"
 import HistoryPage from "./components/HistoryPage"
 import SettingsPage from "./components/SettingsPage"
 import AboutPage from "./components/AboutPage"
-import Toast from "./components/Toast"
 import { ThemeProvider, useTheme } from "./components/ThemeProvider"
+import Layout from "./components/Layout"
 
 function AppContent() {
   const [view, setView] = useState("home")
@@ -56,12 +55,22 @@ function AppContent() {
   if (!isElectron) {
     return (
       <div
-        className={`min-h-screen flex items-center justify-center ${theme === "dark" ? "bg-gray-900" : "bg-gradient-to-br from-cyan-50 to-teal-50"}`}
+        className={`min-h-screen flex items-center justify-center ${
+          theme === "dark"
+            ? "bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800"
+            : "bg-gradient-to-br from-slate-50 via-white to-gray-50"
+        }`}
       >
         <div
-          className={`p-8 rounded-2xl shadow-xl ${theme === "dark" ? "bg-gray-800 border border-gray-700" : "bg-white border border-cyan-100"}`}
+          className={`p-8 rounded-2xl shadow-2xl border ${
+            theme === "dark"
+              ? "bg-slate-800/90 border-slate-700 backdrop-blur-sm"
+              : "bg-white/90 border-slate-200 backdrop-blur-sm"
+          }`}
         >
-          <p className="text-red-500 text-lg font-medium">This application must be run inside Electron.</p>
+          <p className={`text-lg font-semibold ${theme === "dark" ? "text-red-400" : "text-red-600"}`}>
+            This application must be run inside Electron.
+          </p>
         </div>
       </div>
     )
@@ -85,33 +94,18 @@ function AppContent() {
   }
 
   return (
-    <div
-      className={`min-h-screen transition-all duration-300 ${
-        theme === "dark"
-          ? "bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900"
-          : "bg-gradient-to-br from-cyan-50 via-white to-teal-50"
-      }`}
+    <Layout
+      view={view}
+      setView={setView}
+      onHistoryClick={() => {
+        setView("history")
+        fetchHistory()
+      }}
+      toast={toast}
+      onToastClose={() => setToast({ show: false, message: "", type: "success" })}
     >
-      <div className="max-w-6xl mx-auto px-6 py-4 min-h-screen flex flex-col">
-        <Navigation
-          view={view}
-          setView={setView}
-          onHistoryClick={() => {
-            setView("history")
-            fetchHistory()
-          }}
-        />
-        <main className="flex-1 mt-6">
-          <div className="animate-fadeIn">{renderView()}</div>
-        </main>
-      </div>
-      <Toast
-        show={toast.show}
-        message={toast.message}
-        type={toast.type}
-        onClose={() => setToast({ show: false, message: "", type: "success" })}
-      />
-    </div>
+      {renderView()}
+    </Layout>
   )
 }
 
