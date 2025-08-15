@@ -269,6 +269,18 @@ ipcMain.handle('toggle-favorite', (event, itemId) => {
 ipcMain.on('hide-window', () => { if (notificationWindow) notificationWindow.hide(); });
 ipcMain.on('write-clipboard', (event, text) => { if (text) { clipboard.writeText(text); } });
 ipcMain.on('open-url', (event, url) => { shell.openExternal(url); });
+ipcMain.handle('get-theme', () => {
+  // Get the theme from the store, defaulting to 'light' if it's not set
+  const theme = store.get('theme', 'light');
+  console.log(`[IPC] get-theme: returning ${theme}`);
+  return theme;
+});
+
+ipcMain.handle('set-theme', (event, theme) => {
+  console.log(`[IPC] set-theme: saving ${theme}`);
+  // Save the new theme to the config.json file
+  store.set('theme', theme);
+});
 
 async function initializeApp() {
   const { default: Store } = await import('electron-store');

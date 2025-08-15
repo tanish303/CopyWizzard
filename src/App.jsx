@@ -1,180 +1,126 @@
-// =======================================================================
-// FILE: src/App.jsx (Main Controller Component)
-// =======================================================================
-import { useState, useEffect, useCallback } from 'react';
-import Navigation from './components/Navigation';
-import HomePage from './components/HomePage';
-import HowToUsePage from './components/HowToUsePage';
-import HistoryPage from './components/HistoryPage';
-import SettingsPage from './components/SettingsPage';
+"use client"
 
-// --- MOVED STYLES OBJECT TO THE TOP ---
-// Global styles are now defined before the component that uses them.
-const styles = {
-  container: {
-    padding: '0 2rem 2rem 2rem',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    color: '#333',
-    height: '100vh',
-    display: 'flex',
-    flexDirection: 'column'
-  },
-  mainContent: {
-    flexGrow: 1,
-    overflowY: 'auto'
-  },
-  nav: {
-    display: 'flex',
-    gap: '1rem',
-    borderBottom: '1px solid #eee',
-    padding: '1rem 0',
-    flexShrink: 0,
-  },
-  navButton: {
-    background: 'none',
-    border: 'none',
-    padding: '8px 16px',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    fontSize: '1rem',
-    color: '#555'
-  },
-  navButtonActive: {
-    background: '#007bff',
-    color: 'white',
-    border: 'none',
-    padding: '8px 16px',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    fontSize: '1rem'
-  },
-  pageContainer: {
-    textAlign: 'center',
-    paddingTop: '4rem'
-  },
-  appName: {
-    fontSize: '3rem',
-    fontWeight: 'bold',
-    color: '#007bff'
-  },
-  punchline: {
-    fontSize: '1.2rem',
-    color: '#666'
-  },
-  pageTitle: {
-    textAlign: 'left',
-    borderBottom: '1px solid #eee',
-    paddingBottom: '0.5rem',
-    marginBottom: '2rem'
-  },
-  instructions: {
-    textAlign: 'left',
-    maxWidth: '600px',
-    margin: '0 auto',
-    lineHeight: '1.6'
-  },
-  hotkey: {
-    background: '#eee',
-    padding: '2px 6px',
-    borderRadius: '4px',
-    fontFamily: 'monospace'
-  },
-  historyList: {
-    listStyle: 'none',
-    padding: 0,
-  },
-  historyItem: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    borderBottom: '1px solid #eee',
-    padding: '1rem 0'
-  },
-  historyContent: { 
-    marginRight: '1rem',
-    flex: 1
-  },
-  favoriteButton: {
-    background: 'none',
-    border: 'none',
-    fontSize: '1.5rem',
-    cursor: 'pointer',
-    padding: '0.5rem',
-    color: '#ffc107'
+import { useState, useEffect, useCallback } from "react"
+import Navigation from "./components/Navigation"
+import HomePage from "./components/HomePage"
+import HowToUsePage from "./components/HowToUsePage"
+import HistoryPage from "./components/HistoryPage"
+import SettingsPage from "./components/SettingsPage"
+import AboutPage from "./components/AboutPage"
+import Toast from "./components/Toast"
+import { ThemeProvider, useTheme } from "./components/ThemeProvider"
+
+function AppContent() {
+  const [view, setView] = useState("home")
+  const [history, setHistory] = useState([])
+  const [isElectron, setIsElectron] = useState(false)
+  const [toast, setToast] = useState({ show: false, message: "", type: "success" })
+  const { theme } = useTheme()
+
+  const showToast = (message, type = "success") => {
+    setToast({ show: true, message, type })
+    setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000)
   }
-};
-
-
-function App() {
-  const [view, setView] = useState('home'); // 'home', 'how-to-use', 'history', 'settings'
-  const [history, setHistory] = useState([]);
-  const [isElectron, setIsElectron] = useState(false);
 
   const fetchHistory = useCallback(async () => {
     if (window.electronAPI) {
-      const historyData = await window.electronAPI.getHistory();
-      setHistory(historyData);
+      const historyData = await window.electronAPI.getHistory()
+      setHistory(historyData)
     }
-  }, []);
+  }, [])
 
   const handleToggleFavorite = async (itemId) => {
     if (window.electronAPI) {
-      await window.electronAPI.toggleFavorite(itemId);
-      fetchHistory();
+      await window.electronAPI.toggleFavorite(itemId)
+      fetchHistory()
     }
-  };
-  
+  }
+
   useEffect(() => {
     if (window.electronAPI) {
-      setIsElectron(true);
-      if (view === 'history') {
-        fetchHistory();
+      setIsElectron(true)
+      if (view === "history") {
+        fetchHistory()
       }
-      
-      const handleResponse = () => {
-        if (view === 'history') {
-          fetchHistory();
-        }
-      };
 
-      window.electronAPI.onHotkeyResponse(handleResponse);
+      const handleResponse = () => {
+        if (view === "history") {
+          fetchHistory()
+        }
+      }
+
+      window.electronAPI.onHotkeyResponse(handleResponse)
     }
-  }, [fetchHistory, view]);
+  }, [fetchHistory, view])
 
   if (!isElectron) {
     return (
-      <div style={styles.container}>
-        <p style={{ color: '#ff6347' }}>This application must be run inside Electron.</p>
+      <div
+        className={`min-h-screen flex items-center justify-center ${theme === "dark" ? "bg-gray-900" : "bg-gradient-to-br from-cyan-50 to-teal-50"}`}
+      >
+        <div
+          className={`p-8 rounded-2xl shadow-xl ${theme === "dark" ? "bg-gray-800 border border-gray-700" : "bg-white border border-cyan-100"}`}
+        >
+          <p className="text-red-500 text-lg font-medium">This application must be run inside Electron.</p>
+        </div>
       </div>
-    );
+    )
   }
 
   const renderView = () => {
-    switch(view) {
-      case 'home':
-        return <HomePage styles={styles} />;
-      case 'how-to-use':
-        return <HowToUsePage styles={styles} />;
-      case 'history':
-        return <HistoryPage styles={styles} history={history} onToggleFavorite={handleToggleFavorite} />;
-      case 'settings':
-        return <SettingsPage styles={styles} />;
+    switch (view) {
+      case "home":
+        return <HomePage />
+      case "how-to-use":
+        return <HowToUsePage />
+      case "history":
+        return <HistoryPage history={history} onToggleFavorite={handleToggleFavorite} />
+      case "settings":
+        return <SettingsPage showToast={showToast} />
+      case "about":
+        return <AboutPage />
       default:
-        return <HomePage styles={styles} />;
+        return <HomePage />
     }
   }
-  
+
   return (
-    <div style={styles.container}>
-      <Navigation view={view} setView={setView} onHistoryClick={() => { setView('history'); fetchHistory(); }} styles={styles} />
-      <main style={styles.mainContent}>
-        {renderView()}
-      </main>
+    <div
+      className={`min-h-screen transition-all duration-300 ${
+        theme === "dark"
+          ? "bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900"
+          : "bg-gradient-to-br from-cyan-50 via-white to-teal-50"
+      }`}
+    >
+      <div className="max-w-6xl mx-auto px-6 py-4 min-h-screen flex flex-col">
+        <Navigation
+          view={view}
+          setView={setView}
+          onHistoryClick={() => {
+            setView("history")
+            fetchHistory()
+          }}
+        />
+        <main className="flex-1 mt-6">
+          <div className="animate-fadeIn">{renderView()}</div>
+        </main>
+      </div>
+      <Toast
+        show={toast.show}
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast({ show: false, message: "", type: "success" })}
+      />
     </div>
-  );
+  )
 }
 
+function App() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
+  )
+}
 
-export default App;
-
-
+export default App

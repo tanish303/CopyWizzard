@@ -7,7 +7,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setApiKey: (apiKey) => ipcRenderer.invoke('set-api-key', apiKey),
   setLaunchAtLogin: (value) => ipcRenderer.invoke('set-launch-at-login', value),
   setCustomPrompt: (prompt) => ipcRenderer.invoke('set-custom-prompt', prompt),
-
+  // --- ADD THESE NEW FUNCTIONS FOR THEME ---
+  getTheme: () => ipcRenderer.invoke('get-theme'),
+  setTheme: (theme) => ipcRenderer.invoke('set-theme', theme),
   // History
   getHistory: () => ipcRenderer.invoke('get-history'),
   toggleFavorite: (itemId) => ipcRenderer.invoke('toggle-favorite', itemId),
